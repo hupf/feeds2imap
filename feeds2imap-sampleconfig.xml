@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feeds2imap>
+  <imap>
+    <server>mail.example.com</server>
+    <port>993</port><!-- standard is 143 for IMAP, 993 for IMAPS-->
+    <ssl>1</ssl><!-- 0 for IMAP, 1 for IMAPS -->
+    <username>user</username>
+    <password>123456</password>
+  </imap>
+  <feeds>
+    <feed>
+      <url>http://rss.slashdot.org/Slashdot/slashdot</url>
+      <mailbox>Feeds.Slashdot</mailbox>
+    </feed>
+    <feed>
+      <url>http://www.osnews.com/files/recent.xml</url>
+      <mailbox>Feeds.OSNews</mailbox>
+    </feed>
+    <feed>
+      <url>http://digg.com/rss/indexnews.xml</url>
+      <mailbox>Feeds.Digg</mailbox>
+    </feed>
+  </feeds>
+</feeds2imap>
