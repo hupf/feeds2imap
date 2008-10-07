@@ -69,7 +69,7 @@ class FeedReader:
         
         for feed in self.feeds:
             self.__checkFeedMailbox(feed.mailbox)
-            date = self.__getNewestMessageDate(feed.mailbox)
+            date = self.__getNewestMessageDate(feed.mailbox, feed.url)
             if verbose:
                 print 'Fetching %s ...' % feed.url,
             newArticles = 0
@@ -100,8 +100,7 @@ class FeedReader:
                         print 'Error!'
                     print >> sys.stderr, 'Parse error for feed %s:' % feed.url
                     print >> sys.stderr, e
-                finally:
-                    f.close()
+                f.close()
             except Exception, e:
                 if verbose:
                     print 'Error!'
@@ -126,28 +125,27 @@ class FeedReader:
         elif response != 'OK':
             raise Execption('Invalid response from IMAP server: %s' % str(data))
     
-    def __getNewestMessageDate(self, mailbox):
+    def __getNewestMessageDate(self, mailbox, feedurl):
         self.__checkImapResult(self.imapConn.select(mailbox.encode('mod-utf-7'), True))
-        data = self.__checkImapResult(self.imapConn.sort('REVERSE DATE', 'ASCII', 'ALL'))
+        data = self.__checkImapResult(self.imapConn.sort(
+            'REVERSE DATE', 'ASCII', '(HEADER "X-FEED-URL" "%s")' % feedurl))
         mids = string.split(data[0])
         if len(mids) > 0:
-            mid = mids[0]
             data = self.__checkImapResult(self.imapConn.fetch(
-                    mid, '(BODY[HEADER.FIELDS (DATE)])'))
-            date = time.strptime(data[0][1].strip()+' GMT',
+                mids[0], '(BODY[HEADER.FIELDS (DATE)])'))
+            return time.strptime(data[0][1].strip()+' GMT',
                                  "Date: %a, %d %b %Y %H:%M:%S +0000 %Z")
-            return date
         else:
             return time.gmtime(0)
     
     def __isEntryAvailable(self, mailbox, entryUrl):
         self.__checkImapResult(self.imapConn.select(mailbox.encode('mod-utf-7'), True))
         data = self.__checkImapResult(self.imapConn.search(
-                'ASCII', '(HEADER Message-Id "<%s@localhost.localdomain>")' % entryUrl))
+                'ASCII', '(HEADER "MESSAGE-ID" "<%s@localhost.localdomain>")' % entryUrl))
         return data[0] != ''
     
     def __createMimeMessage(self, feed, entry):
-        # Taken from Mozilla Thunderbird's "News & Blog" messages
+        # Inspired by Mozilla Thunderbird's "News & Blog" messages format
         message = """Date: %(date)s
 Message-Id: <%(link)s@localhost.localdomain>
 From: %(author)s
@@ -157,6 +155,7 @@ Content-Transfer-Encoding: 8bit
 Content-Base: %(link)s
 Content-Type: text/html; charset=UTF-8
 X-Mailer: feeds2imap
+X-Feed-Url: %(feedurl)s
 
 
 <html>
@@ -196,7 +195,8 @@ X-Mailer: feeds2imap
        'author':(entry.has_key('author') and '%s <void@feeds2imap>' % entry.author
                  or '%s <void@feeds2imap>' % feed.data.feed.title),
        'title':entry.title,
-       'summary':entry.has_key('summary') and entry.summary or ''}
+       'summary':entry.has_key('summary') and entry.summary or '',
+       'feedurl':feed.url}
         return message.replace("\n", "\r\n")
     
     def __checkImapResult(self, result, goodResponse=['OK']):
