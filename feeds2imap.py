@@ -73,6 +73,7 @@ class FeedReader:
             if verbose:
                 print 'Fetching %s ...' % feed.url,
             newArticles = 0
+            updatedArticles = 0
             sys.stdout.flush()
             try:
                 f = urllib2.urlopen(feed.url)
@@ -81,15 +82,20 @@ class FeedReader:
                     feed.data = feedData
                     for entry in feed.data.entries:
                         try:
-                            if (entry.has_key('updated_parsed') and entry.updated_parsed != None
-                                and time.mktime(entry.updated_parsed) > time.mktime(date)
-                                or not entry.has_key('updated_parsed')
-                                and not self.__isEntryAvailable(feed.mailbox, entry.link)):
-                                message = self.__createMimeMessage(feed, entry)
-                                self.__checkImapResult(self.imapConn.append(
+                            if (not entry.has_key('updated_parsed') or entry.updated_parsed == None
+                                or time.mktime(entry.updated_parsed) > time.mktime(date)):
+                                mid = self.__getMessageId(feed.mailbox, entry.link) 
+                                if mid == None:
+                                    # Create new entry
+                                    message = self.__createMimeMessage(feed, entry)
+                                    self.__checkImapResult(self.imapConn.append(
                                         feed.mailbox.encode('mod-utf-7'),
                                         None, None, message.encode('utf-8')))
-                                newArticles += 1
+                                    newArticles += 1
+                                elif entry.has_key('updated_parsed') and entry.updated_parsed != None:
+                                    # Entry has been updated, mark as unread
+                                    self.__setMessageUnread(mailbox, mid)
+                                    updatedArticles += 1
                         except Exception, e:
                             if verbose:
                                 print 'Error!'
@@ -108,12 +114,10 @@ class FeedReader:
                 print >> sys.stderr, e
             else:
                 if verbose:
-                    if newArticles == 1:
-                        print '(1 new article)'
-                    elif newArticles > 1:
-                        print '(%i new articles)' % newArticles
+                    if newArticles + updatedArticles > 0:
+                        print "(%s new, %s updated articles)" % (newArticles, updatedArticles)
                     else:
-                        print '(nothing new)'
+                        print "(nothing new)"
         
         self.imapConn.logout()
 
@@ -136,13 +140,20 @@ class FeedReader:
             return time.strptime(data[0][1].strip()+' GMT',
                                  "Date: %a, %d %b %Y %H:%M:%S +0000 %Z")
         else:
-            return time.gmtime(0)
+            return time.gmtime(0)                                                     
     
-    def __isEntryAvailable(self, mailbox, entryUrl):
+    def __getMessageId(self, mailbox, entryUrl):
         self.__checkImapResult(self.imapConn.select(mailbox.encode('mod-utf-7'), True))
         data = self.__checkImapResult(self.imapConn.search(
                 'ASCII', '(HEADER "MESSAGE-ID" "<%s@localhost.localdomain>")' % entryUrl))
-        return data[0] != ''
+        if data[0] != '':
+            return data[0]
+        else:
+            return None
+
+    def __setMessageUnread(self, mailbox, mid):
+        self.__checkImapResult(self.imapConn.select(mailbox.encode('mod-utf-7'), True))
+        self.__checkImapResult(self.imapConn.store(mid, '-FLAGS', '\\Seen'))
     
     def __createMimeMessage(self, feed, entry):
         # Inspired by Mozilla Thunderbird's "News & Blog" messages format
