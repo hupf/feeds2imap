@@ -11,7 +11,7 @@ Consider feeds2imap-sampleconfig.xml for the config file format.
 To import your feeds from Thunderbird's "News & Blogs", export them as OPML
 file and use the following command (or any other XSLT processor) to generate the
 feeds2imap config file:
-    xsltproc opml2config.xslt MyFeeds.opml > feeds2imap.xml
+    xsltproc opml2config.xslt MyFeeds.opml > MyFeeds.xml
 
 Authors: Mathis Hofer <mathis@fsfe.org>
          Simon Hofer <simon@fsfe.org>
@@ -37,7 +37,7 @@ import xml.dom.minidom
 from xml.dom.minidom import Node
 from xml import xpath
 
-import sys, os, time, string, optparse, urllib2, imaplib, feedparser, modutf7
+import sys, os, time, string, optparse, urllib2, imaplib, feedparser, modutf7, email
 
 
 class Feed:
@@ -84,18 +84,30 @@ class FeedReader:
                         try:
                             if (not entry.has_key('updated_parsed') or entry.updated_parsed == None
                                 or time.mktime(entry.updated_parsed) > time.mktime(date)):
-                                mid = self.__getMessageId(feed.mailbox, entry.link) 
+                                mid = self.__getMessageId(feed.mailbox, entry.link)
                                 if mid == None:
                                     # Create new entry
-                                    message = self.__createMimeMessage(feed, entry)
-                                    self.__checkImapResult(self.imapConn.append(
-                                        feed.mailbox.encode('mod-utf-7'),
-                                        None, None, message.encode('utf-8')))
+                                    self.__createMimeMessage(feed, entry)
+                                    
                                     newArticles += 1
                                 elif entry.has_key('updated_parsed') and entry.updated_parsed != None:
-                                    # Entry has been updated, mark as unread
-                                    self.__setMessageUnread(mailbox, mid)
-                                    updatedArticles += 1
+                                    # Entry has been updated, read date of old entry
+                                    old_msg = self.__checkImapResult(self.imapConn.fetch(mid, '(RFC822)'))
+                                    old_msg_parsed = email.message_from_string(old_msg[0][1])
+                                    created_date = old_msg_parsed['DATE']
+                                    last_updated_date = old_msg_parsed.has_key('X-FEED-LASTUPDATED') and old_msg_parsed['X-FEED-LASTUPDATED'] or None
+                                    
+                                    if (last_updated_date == None or
+                                        entry.updated_parsed > time.strptime(last_updated_date+' UTC', "%a, %d %b %Y %H:%M:%S +0000 %Z")):
+                                        # Delete old entry
+                                        self.__checkImapResult(self.imapConn.store(
+                                                mid, '+FLAGS', '\\Deleted'))
+                                        self.__checkImapResult(self.imapConn.expunge())
+                                        
+                                        # Create new entry with old date
+                                        self.__createMimeMessage(feed, entry, created_date)
+                                        
+                                        updatedArticles += 1
                         except Exception, e:
                             if verbose:
                                 print 'Error!'
@@ -130,7 +142,6 @@ class FeedReader:
             raise Execption('Invalid response from IMAP server: %s' % str(data))
     
     def __getNewestMessageDate(self, mailbox, feedurl):
-        self.__checkImapResult(self.imapConn.select(mailbox.encode('mod-utf-7'), True))
         data = self.__checkImapResult(self.imapConn.sort(
             'REVERSE DATE', 'ASCII', '(HEADER "X-FEED-URL" "%s")' % feedurl))
         mids = string.split(data[0])
@@ -143,19 +154,17 @@ class FeedReader:
             return time.gmtime(0)                                                     
     
     def __getMessageId(self, mailbox, entryUrl):
-        self.__checkImapResult(self.imapConn.select(mailbox.encode('mod-utf-7'), True))
         data = self.__checkImapResult(self.imapConn.search(
                 'ASCII', '(HEADER "MESSAGE-ID" "<%s@localhost.localdomain>")' % entryUrl))
         if data[0] != '':
-            return data[0]
+            return data[0].split(' ')[-1]
         else:
             return None
-
-    def __setMessageUnread(self, mailbox, mid):
-        self.__checkImapResult(self.imapConn.select(mailbox.encode('mod-utf-7'), True))
-        self.__checkImapResult(self.imapConn.store(mid, '-FLAGS', '\\Seen'))
     
-    def __createMimeMessage(self, feed, entry):
+    def __createMimeMessage(self, feed, entry, created_date=None):
+        entry_date = time.strftime("%a, %d %b %Y %H:%M:%S +0000",
+                                   (entry.has_key('updated_parsed') and entry.updated_parsed
+                                    or time.gmtime()))
         # Inspired by Mozilla Thunderbird's "News & Blog" messages format
         message = """Date: %(date)s
 Message-Id: <%(link)s@localhost.localdomain>
@@ -167,6 +176,7 @@ Content-Base: %(link)s
 Content-Type: text/html; charset=UTF-8
 X-Mailer: feeds2imap
 X-Feed-Url: %(feedurl)s
+%(lastupdated)s
 
 
 <html>
@@ -199,16 +209,19 @@ X-Feed-Url: %(feedurl)s
 
   </body>
 </html>
-""" % {'date':time.strftime("%a, %d %b %Y %H:%M:%S +0000",
-                            (entry.has_key('updated_parsed') and entry.updated_parsed
-                             or time.gmtime())),
+""" % {'date':created_date != None and created_date or entry_date,
        'link':entry.link,
        'author':(entry.has_key('author') and '%s <void@feeds2imap>' % entry.author
                  or '%s <void@feeds2imap>' % feed.data.feed.title),
        'title':entry.title,
        'summary':entry.has_key('summary') and entry.summary or '',
-       'feedurl':feed.url}
-        return message.replace("\n", "\r\n")
+       'feedurl':feed.url,
+       'lastupdated':created_date != None and "X-Feed-Lastupdated: %s" % entry_date or ''}
+        
+        # Save message to IMAP server
+        self.__checkImapResult(self.imapConn.append(
+                feed.mailbox.encode('mod-utf-7'),
+                None, None, message.replace("\n", "\r\n").encode('utf-8')))
     
     def __checkImapResult(self, result, goodResponse=['OK']):
         if result[0] in goodResponse:
