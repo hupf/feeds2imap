@@ -138,6 +138,7 @@ class FeedReader:
         if response == 'NO':
             self.__checkImapResult(self.imapConn.create(mailbox.encode('mod-utf-7')))
             self.__checkImapResult(self.imapConn.subscribe(mailbox.encode('mod-utf-7')))
+            self.__checkImapResult(self.imapConn.select(mailbox.encode('mod-utf-7')))
         elif response != 'OK':
             raise Execption('Invalid response from IMAP server: %s' % str(data))
     
