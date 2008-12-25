@@ -101,7 +101,8 @@ class FeedReader:
                                         entry.updated_parsed > time.strptime(last_updated_date+' UTC', "%a, %d %b %Y %H:%M:%S +0000 %Z")):
                                         # Delete old entry
                                         self.__checkImapResult(self.imapConn.store(
-                                                mid, '+FLAGS', '\\Deleted'))
+                                                mid, 'FLAGS', '\\Deleted'))
+                                        self.__checkImapResult(self.imapConn.select(feed.mailbox.encode('mod-utf-7'), True))
                                         self.__checkImapResult(self.imapConn.expunge())
                                         
                                         # Create new entry with old date
