@@ -16,7 +16,7 @@ feeds2imap config file:
 Authors: Mathis Hofer <mathis@fsfe.org>
          Simon Hofer <simon@fsfe.org>
 
-Copyright (c) 2008 Mathis & Simon Hofer.
+Copyright (c) 2008-2009 Mathis & Simon Hofer.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -51,7 +51,7 @@ class Feed:
 
 
 class FeedReader:
-    def __init__(self, feeds, verbose, imapServer, imapSSL, imapPort, imapUser, imapPwd):
+    def __init__(self, feeds, verbose, imapServer, imapSSL, imapPort, imapUser, imapPwd, msgLimit):
         self.feeds = feeds
         self.verbose = verbose
         self.imapServer = imapServer
@@ -59,6 +59,7 @@ class FeedReader:
         self.imapPort = imapPort
         self.imapUser = imapUser
         self.imapPwd = imapPwd
+        self.msgLimit = msgLimit
     
     def start(self):
         if not self.imapSSL:
@@ -100,10 +101,8 @@ class FeedReader:
                                     if (last_updated_date == None or
                                         entry.updated_parsed > time.strptime(last_updated_date+' UTC', "%a, %d %b %Y %H:%M:%S +0000 %Z")):
                                         # Delete old entry
-                                        self.__checkImapResult(self.imapConn.select(feed.mailbox.encode('mod-utf-7')))
                                         self.__checkImapResult(self.imapConn.store(
                                                 mid, '+FLAGS', '\\Deleted'))
-                                        self.__checkImapResult(self.imapConn.expunge())
                                         
                                         # Create new entry with old date
                                         self.__createMimeMessage(feed, entry, created_date)
@@ -120,6 +119,7 @@ class FeedReader:
                     print >> sys.stderr, 'Parse error for feed %s:' % feed.url
                     print >> sys.stderr, e
                 f.close()
+                self.__cleanFeedMailbox(feed.mailbox)
             except Exception, e:
                 if verbose:
                     print 'Error!'
@@ -135,13 +135,26 @@ class FeedReader:
         self.imapConn.logout()
 
     def __checkFeedMailbox(self, mailbox):
-        (response, data) = self.imapConn.select(mailbox.encode('mod-utf-7'), True)
+        (response, data) = self.imapConn.select(mailbox.encode('mod-utf-7'))
         if response == 'NO':
             self.__checkImapResult(self.imapConn.create(mailbox.encode('mod-utf-7')))
             self.__checkImapResult(self.imapConn.subscribe(mailbox.encode('mod-utf-7')))
             self.__checkImapResult(self.imapConn.select(mailbox.encode('mod-utf-7')))
         elif response != 'OK':
             raise Execption('Invalid response from IMAP server: %s' % str(data))
+
+    def __cleanFeedMailbox(self, mailbox):
+        self.__checkImapResult(self.imapConn.expunge())
+
+        # Delete oldest messages if mailbox contains more than the limit
+        if self.msgLimit > 0:
+            messagesCount = int(self.__checkImapResult(self.imapConn.select(mailbox.encode('mod-utf-7')))[0])
+            if messagesCount > self.msgLimit:
+                mids = self.__checkImapResult(self.imapConn.sort(
+                    'DATE', 'ASCII', 'ALL'))[0].split(' ')
+                self.__checkImapResult(self.imapConn.store(','.join(mids[:-self.msgLimit]),
+                                       '+FLAGS', '\\Deleted'))
+                self.__checkImapResult(self.imapConn.expunge())
     
     def __getNewestMessageDate(self, mailbox, feedurl):
         data = self.__checkImapResult(self.imapConn.sort(
@@ -229,7 +242,7 @@ X-Feed-Url: %(feedurl)s
         if result[0] in goodResponse:
             return result[1]
         else:
-            raise Execption('Invalid response from IMAP server: %s' % str(data))
+            raise Exception('Invalid response from IMAP server: %s' % str(result[1]))
         
     
 if __name__=="__main__":
@@ -257,6 +270,7 @@ if __name__=="__main__":
         useSSL = bool(xpath.Evaluate('/feeds2imap/imap/ssl/child::text()', doc)[0].nodeValue)
         username = unicode(xpath.Evaluate('/feeds2imap/imap/username/child::text()', doc)[0].nodeValue)
         password = unicode(xpath.Evaluate('/feeds2imap/imap/password/child::text()', doc)[0].nodeValue)
+        messagesPerMailbox = int(xpath.Evaluate('/feeds2imap/imap/messagespermailbox/child::text()', doc)[0].nodeValue)
         
         feeds = []
         for node in xpath.Evaluate('/feeds2imap/feeds/feed', doc):
@@ -267,5 +281,8 @@ if __name__=="__main__":
         print >> sys.stderr, 'Unable to parse the config file'
         sys.exit(1)
     
-    reader = FeedReader(feeds, verbose, server, useSSL, port, username, password)
+    reader = FeedReader(feeds, verbose,
+                        server, useSSL, port,
+                        username, password,
+                        messagesPerMailbox)
     reader.start()

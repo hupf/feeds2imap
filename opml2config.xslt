@@ -16,6 +16,7 @@
         <ssl>1</ssl>
         <username>user</username>
         <password>123456</password>
+        <messagespermailbox>400</messagespermailbox>
       </imap>
 
       <feeds>

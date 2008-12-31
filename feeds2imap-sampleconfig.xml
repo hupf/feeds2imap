@@ -6,6 +6,7 @@
     <ssl>1</ssl><!-- 0 for IMAP, 1 for IMAPS -->
     <username>user</username>
     <password>123456</password>
+    <messagespermailbox>400</messagespermailbox> <!-- maximum messages per mailbox, 0 for no limit -->
   </imap>
   <feeds>
     <feed>
