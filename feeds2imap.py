@@ -101,8 +101,9 @@ class FeedReader:
                                     if (last_updated_date == None or
                                         entry.updated_parsed > time.strptime(last_updated_date+' UTC', "%a, %d %b %Y %H:%M:%S +0000 %Z")):
                                         # Delete old entry
-                                        self.__checkImapResult(self.imapConn.store(
-                                                mid, '+FLAGS', '\\Deleted'))
+                                        self.__checkImapResult(self.imapConn.select(feed.mailbox.encode('mod-utf-7')))
+                                        self.__checkImapResult(self.imapConn.store(mid, '+FLAGS', '\\Deleted'))
+                                        self.__checkImapResult(self.imapConn.select(feed.mailbox.encode('mod-utf-7'), True))
                                         
                                         # Create new entry with old date
                                         self.__createMimeMessage(feed, entry, created_date)
@@ -113,13 +114,19 @@ class FeedReader:
                                 print 'Error!'
                             print >> sys.stderr, 'Failed to store entry of feed %s to IMAP server:' % feed.url
                             print >> sys.stderr, e
+                    try:
+                        self.__cleanFeedMailbox(feed.mailbox)
+                    except Exception, e:
+                        if verbose:
+                            print 'Error!'
+                        print >> sys.stderr, 'Failed to clean up mailbox of feed %s:' % feed.url
+                        print >> sys.stderr, e
                 except Exception, e:
                     if verbose:
                         print 'Error!'
                     print >> sys.stderr, 'Parse error for feed %s:' % feed.url
                     print >> sys.stderr, e
                 f.close()
-                self.__cleanFeedMailbox(feed.mailbox)
             except Exception, e:
                 if verbose:
                     print 'Error!'
@@ -135,26 +142,25 @@ class FeedReader:
         self.imapConn.logout()
 
     def __checkFeedMailbox(self, mailbox):
-        (response, data) = self.imapConn.select(mailbox.encode('mod-utf-7'))
+        (response, data) = self.imapConn.select(mailbox.encode('mod-utf-7'), True)
         if response == 'NO':
             self.__checkImapResult(self.imapConn.create(mailbox.encode('mod-utf-7')))
             self.__checkImapResult(self.imapConn.subscribe(mailbox.encode('mod-utf-7')))
-            self.__checkImapResult(self.imapConn.select(mailbox.encode('mod-utf-7')))
+            self.__checkImapResult(self.imapConn.select(mailbox.encode('mod-utf-7'), True))
         elif response != 'OK':
             raise Execption('Invalid response from IMAP server: %s' % str(data))
 
     def __cleanFeedMailbox(self, mailbox):
-        self.__checkImapResult(self.imapConn.expunge())
-
         # Delete oldest messages if mailbox contains more than the limit
         if self.msgLimit > 0:
-            messagesCount = int(self.__checkImapResult(self.imapConn.select(mailbox.encode('mod-utf-7')))[0])
-            if messagesCount > self.msgLimit:
-                mids = self.__checkImapResult(self.imapConn.sort(
-                    'DATE', 'ASCII', 'ALL'))[0].split(' ')
-                self.__checkImapResult(self.imapConn.store(','.join(mids[:-self.msgLimit]),
+            messages = self.__checkImapResult(self.imapConn.sort('DATE', 'ASCII', 'UNDELETED'))[0].split(' ')
+            if len(messages) > self.msgLimit:
+                self.__checkImapResult(self.imapConn.store(','.join(messages[:-self.msgLimit]),
                                        '+FLAGS', '\\Deleted'))
-                self.__checkImapResult(self.imapConn.expunge())
+        
+        self.__checkImapResult(self.imapConn.select(mailbox.encode('mod-utf-7')))
+        self.__checkImapResult(self.imapConn.expunge())
+        self.__checkImapResult(self.imapConn.select(mailbox.encode('mod-utf-7'), True))
     
     def __getNewestMessageDate(self, mailbox, feedurl):
         data = self.__checkImapResult(self.imapConn.sort(
