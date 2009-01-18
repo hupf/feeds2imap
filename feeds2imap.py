@@ -6,12 +6,7 @@ feeds2imap downloads your favourite feeds to your IMAP account. Read them at
 home or at work with your desktop mail program or from wherever you are with your
 webmail application.
 
-Consider feeds2imap-sampleconfig.xml for the config file format.
-
-To import your feeds from Thunderbird's "News & Blogs", export them as OPML
-file and use the following command (or any other XSLT processor) to generate the
-feeds2imap config file:
-    xsltproc opml2config.xslt MyFeeds.opml > MyFeeds.xml
+Read README for more information.
 
 Authors: Mathis Hofer <mathis@fsfe.org>
          Simon Hofer <simon@fsfe.org>

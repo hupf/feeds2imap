@@ -1,0 +1,37 @@
+feeds2imap 0.1
+
+feeds2imap downloads your favourite feeds to your IMAP account. Read them at
+home or at work with your desktop mail program or from wherever you are with your
+webmail application.
+
+Read COPYING for the licensing terms.
+
+
+1. Configuration
+-----------------
+
+Copy the sample configuration file and add your IMAP configuration and feeds:
+    cp feeds2imap-sampleconfig.xml MyFeeds.xml
+
+To import your feeds from Thunderbird's "News & Blogs", export them as OPML
+file and use the following command (or any other XSLT processor) to generate a
+feeds2imap config file:
+    xsltproc opml2config.xslt MyFeeds.opml > MyFeeds.xml
+
+
+2. Installation
+---------------
+
+Test your feeds by running:
+    ./feeds2imap.py -v MyFeeds.xml
+
+Create a cronjob entry, e.g.:
+    30 * * * *      /path/to/feeds2imap.py /path/to/MyFeeds.xml
+
+
+3. Usage
+--------
+
+Use your favourite email application to read the feeds. In Thunderbird click on "Click here to always load remote images from feeds2imap.".
+
+The IMAP folders will always be created automatically if you add new feeds. To delete a feed, simply remove its entry in the configuration file and delete the IMAP folder.
