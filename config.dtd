@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!ELEMENT feeds2imap (imap, feeds)>
+
+<!ELEMENT imap (server, port, ssl?, username, password, messagespermailbox)>
+<!ELEMENT server (#PCDATA)>
+<!ELEMENT port (#PCDATA)>
+<!ELEMENT ssl EMPTY>
+<!ELEMENT username (#PCDATA)>
+<!ELEMENT password (#PCDATA)>
+<!ELEMENT messagespermailbox (#PCDATA)>
+
+<!ELEMENT feeds (feed*)>
+<!ELEMENT feed (url, mailbox)>
+<!ELEMENT url (#PCDATA)>
+<!ELEMENT mailbox (#PCDATA)>
+

@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!-- Usage: xsltproc opml2config.xslt MyFeeds.opml -->
 <xsl:stylesheet version="1.0"
                 xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                 xmlns:str="http://exslt.org/strings"
                 exclude-result-prefixes="str">
 
-  <xsl:output method="xml" version="1.0" encoding="utf-8" indent="yes" />
+  <xsl:output method="xml" version="1.0"
+              doctype-system="config.dtd"
+              encoding="utf-8" indent="yes" />
   <xsl:strip-space elements="*" />
 
   <xsl:template match="/opml">
@@ -13,7 +14,7 @@
       <imap>
         <server>mail.example.com</server>
         <port>993</port>
-        <ssl>1</ssl>
+        <ssl />
         <username>user</username>
         <password>123456</password>
         <messagespermailbox>400</messagespermailbox>

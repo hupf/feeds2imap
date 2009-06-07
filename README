@@ -11,7 +11,7 @@ Read COPYING for the licensing terms.
 -----------------
 
 Copy the sample configuration file and add your IMAP configuration and feeds:
-    cp feeds2imap-sampleconfig.xml MyFeeds.xml
+    cp config.xml.sample MyFeeds.xml
 
 To import your feeds from Thunderbird's "News & Blogs", export them as OPML
 file and use the following command (or any other XSLT processor) to generate a

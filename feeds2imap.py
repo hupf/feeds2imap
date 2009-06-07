@@ -261,13 +261,17 @@ if __name__=="__main__":
     if not os.path.exists(configfile):
         print >> sys.stderr, 'The config file "%s" does not exist' % configfile
         sys.exit(1)
+
+    if os.system('xmllint --noout --valid %s' % configfile):
+        print >> sys.stderr, 'The config file "%s" is not valid' % configfile
+        sys.exit(1)
     
     try:
         doc = xml.dom.minidom.parse(configfile)
         
         server = unicode(xpath.Evaluate('/feeds2imap/imap/server/child::text()', doc)[0].nodeValue)
         port = int(xpath.Evaluate('/feeds2imap/imap/port/child::text()', doc)[0].nodeValue)
-        useSSL = bool(xpath.Evaluate('/feeds2imap/imap/ssl/child::text()', doc)[0].nodeValue)
+        useSSL = bool(xpath.Evaluate('/feeds2imap/imap/ssl', doc))
         username = unicode(xpath.Evaluate('/feeds2imap/imap/username/child::text()', doc)[0].nodeValue)
         password = unicode(xpath.Evaluate('/feeds2imap/imap/password/child::text()', doc)[0].nodeValue)
         messagesPerMailbox = int(xpath.Evaluate('/feeds2imap/imap/messagespermailbox/child::text()', doc)[0].nodeValue)

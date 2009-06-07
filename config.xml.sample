@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE feeds2imap SYSTEM "config.dtd">
 <feeds2imap>
   <imap>
     <server>mail.example.com</server>
-    <port>993</port><!-- standard is 143 for IMAP, 993 for IMAPS-->
-    <ssl>1</ssl><!-- 0 for IMAP, 1 for IMAPS -->
+    <port>993</port> <!-- standard is 143 for IMAP, 993 for IMAPS-->
+    <ssl /> <!-- comment out to deactivate SSL -->
     <username>user</username>
     <password>123456</password>
     <messagespermailbox>400</messagespermailbox> <!-- maximum messages per mailbox, 0 for no limit -->
