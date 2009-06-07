@@ -147,13 +147,12 @@ class FeedReader:
 
     def __cleanFeedMailbox(self, mailbox):
         # Delete oldest messages if mailbox contains more than the limit
+        self.__checkImapResult(self.imapConn.select(mailbox.encode('mod-utf-7')))
         if self.msgLimit > 0:
             messages = self.__checkImapResult(self.imapConn.sort('DATE', 'ASCII', 'UNDELETED'))[0].split(' ')
             if len(messages) > self.msgLimit:
                 self.__checkImapResult(self.imapConn.store(','.join(messages[:-self.msgLimit]),
                                        '+FLAGS', '\\Deleted'))
-        
-        self.__checkImapResult(self.imapConn.select(mailbox.encode('mod-utf-7')))
         self.__checkImapResult(self.imapConn.expunge())
         self.__checkImapResult(self.imapConn.select(mailbox.encode('mod-utf-7'), True))
     
