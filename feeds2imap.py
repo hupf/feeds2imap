@@ -209,15 +209,12 @@ X-Feed-Url: %(feedurl)s
     <base href="%(link)s">
     <style type="text/css">
       
-      #msgBody {
+      body {
         margin: 0;
         border: none;
         padding: 0;
       }
-      #msgSummary {
-        display: no;
-      }
-      #msgIframe {
+      iframe {
         position: fixed;
         top: 0;
         left: 0;
@@ -228,9 +225,8 @@ X-Feed-Url: %(feedurl)s
 
     </style>
   </head>
-  <body id="msgBody" selected="false">
-    <div id="msgSummary"><!-- just to make Thunderbird 3 happy --></div>
-    <iframe id="msgIframe" selected="false" src="%(link)s">
+  <body>
+    <iframe id="_mailrssiframe" src="%(link)s"></iframe>
   </body>
 </html>
 """ % {'date':created_date is not None and created_date or entry_date,
