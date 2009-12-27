@@ -1,8 +1,8 @@
-feeds2imap 0.2
+feeds2imap 0.2.1
 
 feeds2imap downloads your favourite feeds to your IMAP account. Read them at
-home or at work with your desktop mail program or from wherever you are with your
-webmail application.
+home or at work with your desktop mail program or from wherever you are with
+your webmail application.
 
 Read COPYING for the licensing terms.
 
@@ -32,6 +32,12 @@ Create a cronjob entry, e.g.:
 3. Usage
 --------
 
-Use your favourite email application to read the feeds. In Thunderbird click on "Click here to always load remote images from feeds2imap.".
+Use your favourite email application to read the feeds. In Thunderbird click
+on "Click here to always load remote images from feeds2imap.".
 
-The IMAP folders will always be created automatically if you add new feeds. To delete a feed, simply remove its entry in the configuration file and delete the IMAP folder.
+Do not delete the messages, just mark them as "read". Like that, feeds2imap
+knows where to continue downloading new messages.
+
+The IMAP folders will always be created automatically if you add new feeds. To
+delete a feed, simply remove its entry in the configuration file and delete
+the IMAP folder.

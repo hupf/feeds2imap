@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-""" feeds2imap 0.2
+""" feeds2imap 0.2.1
 
 feeds2imap downloads your favourite feeds to your IMAP account. Read them at
 home or at work with your desktop mail program or from wherever you are with your
@@ -11,7 +11,7 @@ Read README for more information.
 Authors: Mathis Hofer <mathis@fsfe.org>
          Simon Hofer <simon@fsfe.org>
 
-Copyright (c) 2008-2009 Mathis & Simon Hofer.
+Copyright (c) 2008-2010 Mathis & Simon Hofer.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
