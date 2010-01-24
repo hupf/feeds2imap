@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-""" feeds2imap 0.2.1
+""" feeds2imap 0.2.2
 
 feeds2imap downloads your favourite feeds to your IMAP account. Read them at
 home or at work with your desktop mail program or from wherever you are with your
