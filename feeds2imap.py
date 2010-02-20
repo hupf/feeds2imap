@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-""" feeds2imap 0.2.2
+""" feeds2imap 0.2.3
 
 feeds2imap downloads your favourite feeds to your IMAP account. Read them at
 home or at work with your desktop mail program or from wherever you are with your
@@ -181,7 +181,7 @@ class FeedReader:
     def __get_message_id(self, mailbox, entryurl):
         data = self.__check_imap_result(self.imap_conn.search(
                 'UTF-8', '(HEADER "MESSAGE-ID" "<%s@localhost.localdomain>")' %
-                urllib.quote(entryurl.encode('utf-8'), '/:')))
+                urllib.quote(entryurl.encode('utf-8'), '/:?=')))
         if data[0] != '':
             return data[0].split(' ')[-1]
         else:
@@ -232,12 +232,12 @@ X-Feed-Url: %(feedurl)s
   </body>
 </html>
 """ % {'date':created_date is not None and created_date or entry_date,
-       'link':urllib.quote(entry.link.encode('utf-8'), '/:'),
+       'link':urllib.quote(entry.link.encode('utf-8'), '/:?='),
        'author':(entry.has_key('author') and '%s <void@feeds2imap>' % entry.author
                  or '%s <void@feeds2imap>' % feed.data.feed.title),
        'title':entry.title,
        'summary':entry.has_key('summary') and entry.summary or '',
-       'feedurl':urllib.quote(feed.url.encode('utf-8'), '/:'),
+       'feedurl':urllib.quote(feed.url.encode('utf-8'), '/:?='),
        'lastupdated':created_date is not None and "X-Feed-Lastupdated: %s" % entry_date or ''}
 
         # Save message to IMAP server
